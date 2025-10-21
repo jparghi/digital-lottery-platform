@@ -3,14 +3,15 @@ version: "3.9"
 services:
   gateway:
     image: nginx:1.27
-    container_name: gateway
     ports:
       - "80:80"
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - ticket-service
-      - payment-service
+      payment-service:
+        condition: service_healthy
+      ticket-service:
+        condition: service_started
 
   ticket-service:
     build: ./services/ticket-service
@@ -26,9 +27,11 @@ services:
     ports:
       - "8081:8081"
     env_file: .env
-    depends_on:
-      - db
-      - rabbitmq
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/api/payment/health" ]
+      interval: 5s
+      retries: 5
+
 
   frontend:
     build: ./frontend
