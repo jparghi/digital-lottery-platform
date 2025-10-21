@@ -30,6 +30,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_started
+      db:
+        condition: service_started
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8081/api/payment/health" ]
       interval: 10s
