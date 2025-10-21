@@ -11,21 +11,28 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/ticket")
 public class TicketServiceApplication {
+
     private final RabbitTemplate rabbit;
 
     public TicketServiceApplication(RabbitTemplate rabbit) {
         this.rabbit = rabbit;
     }
 
+    // ensure queue exists
     @Bean
-    Queue queue() {
+    public Queue queue() {
         return new Queue("tickets", false);
     }
 
     @PostMapping("/buy")
     public String buy(@RequestBody(required = false) String body) {
-        rabbit.convertAndSend("tickets", "new-ticket");
-        return "Ticket purchased";
+        try {
+            rabbit.convertAndSend("tickets", "new-ticket");
+            return "Ticket purchased";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
     }
 
     public static void main(String[] args) {

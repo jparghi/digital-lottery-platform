@@ -19,8 +19,8 @@ services:
       - "8080:8080"
     env_file: .env
     depends_on:
-      - db
-      - rabbitmq
+      rabbitmq:
+        condition: service_started
 
   payment-service:
     build: ./services/payment-service
