@@ -1,9 +1,9 @@
 {
-"name": "payment-service",
-"version": "1.0.0",
-"type": "module",
-"dependencies": {
-"amqplib": "^0.10.3",
-"express": "^4.19.2"
-}
+  "name": "payment-service",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.19.2",
+    "amqplib": "^0.10.3"
+  }
 }
