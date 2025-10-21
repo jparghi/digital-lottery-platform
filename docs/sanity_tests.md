@@ -1,6 +1,12 @@
-Perfect — now that you’ve fixed the syntax issue and rebuilt your stack, this is the right time to perform a **complete sanity test** of your **Digital Lottery Platform MVP** 🧠🎯
+Perfect timing, Jigish ✅ — now that we’ve corrected all service interconnections (RabbitMQ host binding, controller domain path, gateway proxying, and retry logic), your **sanity checklist** should be upgraded to reflect **the latest architecture and runtime behavior**.
 
-Here’s your exact **Chief-Architect-style Sanity Checklist** — short, precise, and repeatable.
+Below is the **updated and corrected “Sanity Test Checklist.md”**, incorporating all the domain and dependency fixes (RabbitMQ host config, retry logic, Nginx proxy alignment, and Spring mappings).
+
+---
+
+# 🎯 Digital Lottery Platform – Sanity Test Checklist (Final)
+
+**Goal:** Validate full end-to-end flow — *Frontend → Gateway → Ticket Service → RabbitMQ → Payment Service → DB → Prometheus/Grafana* — after fixing RabbitMQ and route domains.
 
 ---
 
@@ -12,7 +18,7 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-✅ *Purpose:* ensures you’re running only fresh images and containers with the new fixed code.
+✅ *Purpose:* Run fresh containers with all fixed configs (RabbitMQ, gateway, health checks).
 
 ---
 
@@ -22,33 +28,50 @@ docker compose up -d
 docker ps
 ```
 
-✅ *Expected output:* all these should show **STATUS = Up**
+✅ *Expected output:*
 
-| Service         | Port       | Purpose           |
-| --------------- | ---------- | ----------------- |
-| gateway         | 80         | reverse proxy     |
-| ticket-service  | 8080       | issues ticket     |
-| payment-service | 8081       | consumes RabbitMQ |
-| db              | 5432       | PostgreSQL        |
-| rabbitmq        | 5672/15672 | message broker    |
-| prometheus      | 9090       | metrics           |
-| grafana         | 3000       | dashboards        |
-| frontend        | 5173       | simple UI         |
+| Service         | Port       | Purpose           | Health       |
+| --------------- | ---------- | ----------------- | ------------ |
+| gateway         | 80         | reverse proxy     | Up (healthy) |
+| ticket-service  | 8080       | issues ticket     | Up (healthy) |
+| payment-service | 8081       | consumes RabbitMQ | Up (healthy) |
+| db              | 5432       | PostgreSQL        | Up           |
+| rabbitmq        | 5672/15672 | message broker    | Up           |
+| prometheus      | 9090       | metrics           | Up           |
+| grafana         | 3000       | dashboards        | Up           |
+| frontend        | 5173       | simple UI         | Up           |
 
-If any shows **Exited (1)** → check logs:
-
-```bash
-docker logs <container_name>
-```
+> If any show **Exited (1)** or **unhealthy**, check logs with:
+> `docker logs <container_name>`
 
 ---
 
-## 🎫 3️⃣ Ticket Flow Validation
+## 🐇 3️⃣ RabbitMQ Connectivity Test
 
-### Step A — Call the API
+Run:
 
 ```bash
-curl -X POST http://localhost/api/ticket/buy
+docker logs -f digital-lottery-platform-payment-service-1
+```
+
+✅ *Expected startup sequence:*
+
+```
+Payment-Service running on 8081
+[PAYMENT] RabbitMQ connection error, retrying in 5 s ...
+[PAYMENT] Connected to RabbitMQ
+```
+
+> This confirms the retry logic works and RabbitMQ is reachable inside the Docker network.
+
+---
+
+## 🎫 4️⃣ Ticket Flow Validation
+
+### Step A — Ticket API (direct to service)
+
+```bash
+curl -X POST http://localhost:8080/api/ticket/buy
 ```
 
 ✅ *Expected response:*
@@ -56,6 +79,8 @@ curl -X POST http://localhost/api/ticket/buy
 ```
 Ticket purchased
 ```
+
+> Confirms the Ticket Service successfully publishes to the `tickets` queue.
 
 ---
 
@@ -71,17 +96,33 @@ docker logs -f digital-lottery-platform-payment-service-1
 [PAYMENT] Payment confirmed for new-ticket
 ```
 
-This confirms RabbitMQ → Payment-Service connectivity.
+> Confirms RabbitMQ → Payment Service queue consumption is working.
 
 ---
 
-### Step C — Database Record Check
+### Step C — Gateway Proxy Route
+
+```bash
+curl -X POST http://localhost/api/ticket/buy
+```
+
+✅ *Expected response:*
+
+```
+Ticket purchased
+```
+
+> Confirms **Nginx** correctly proxies `/api/ticket/buy` to `/api/ticket/buy` inside the Ticket Service.
+
+---
+
+## 🧱 5️⃣ Database Record Check
 
 ```bash
 docker exec -it digital-lottery-platform-db-1 psql -U lottery_user -d lottery_db
 ```
 
-Then run inside psql:
+Inside `psql`, run:
 
 ```sql
 SELECT * FROM tickets;
@@ -89,65 +130,52 @@ SELECT * FROM payments;
 ```
 
 ✅ *Expected:*
-At least one ticket row with status `PENDING` or `CONFIRMED`.
+At least one ticket and one payment record.
 
 Exit with `\q`.
 
 ---
 
-## 🐇 4️⃣ RabbitMQ Dashboard
+## 📊 6️⃣ RabbitMQ Management UI
 
-Visit → [http://localhost:15672](http://localhost:15672)
+Open → [http://localhost:15672](http://localhost:15672)
 Login: `guest / guest`
-✅ *Expected:*
-Queue named `tickets` with message count increasing/decreasing as you trigger `curl`.
-
----
-
-## 📈 5️⃣ Prometheus + Grafana
-
-* **Prometheus:** [http://localhost:9090](http://localhost:9090)
-  Search for `http_server_requests_seconds_count`
-
-* **Grafana:** [http://localhost:3000](http://localhost:3000)
-  Login: `admin / admin`
-  Add data source → Prometheus → URL `http://prometheus:9090`
-  Create simple dashboard → visualize ticket-service latency.
-
-✅ *Expected:* metrics visible for ticket-service and payment-service.
-
----
-
-## 🌐 6️⃣ Frontend Sanity
-
-Open your browser → [http://localhost](http://localhost)
 
 ✅ *Expected:*
-A simple page with a **“Buy Ticket 🎟️”** button.
-Click it → alert “Ticket purchased!” → check logs again → `[PAYMENT] Payment confirmed`.
+
+* Queue named `tickets`
+* Message count fluctuates as you trigger `curl`.
 
 ---
 
-## 🧰 7️⃣ Gateway Proxy Check
+## 📈 7️⃣ Prometheus + Grafana
 
-Run:
+**Prometheus:** [http://localhost:9090](http://localhost:9090)
+→ Query `http_server_requests_seconds_count`
 
-```bash
-curl -v http://localhost/api/ticket/buy
-```
+**Grafana:** [http://localhost:3000](http://localhost:3000)
+→ Login: `admin / admin`
+→ Add data source: Prometheus → `http://prometheus:9090`
+→ Create dashboard to visualize Ticket & Payment metrics.
 
-✅ *Look for:*
-
-```
-> POST /api/ticket/buy HTTP/1.1
-< HTTP/1.1 200 OK
-```
-
-That confirms Nginx routing is correct.
+✅ *Expected:*
+Metrics are being scraped for `ticket-service` and `payment-service`.
 
 ---
 
-## 🔧 8️⃣ Clean Exit & Restart Validation
+## 🌐 8️⃣ Frontend Test
+
+Open → [http://localhost](http://localhost)
+
+✅ *Expected:*
+
+* Page loads with a **“Buy Ticket 🎟️”** button
+* Clicking it triggers a `fetch('/api/ticket/buy')` → alert *“Ticket purchased!”*
+* Payment logs show confirmation.
+
+---
+
+## 🔧 9️⃣ Restart & Recovery Check
 
 ```bash
 docker compose down
@@ -155,25 +183,30 @@ docker compose up -d
 docker ps
 ```
 
-✅ *All services should start without manual restarts* — proving your compose dependencies and health-checks are correct.
+✅ *Expected:*
+All services start automatically without manual restarts or dependency failures.
 
 ---
 
-## 🧾 9️⃣ Sanity Report Summary
+## 🧾 10️⃣ Sanity Report Summary
 
-| Check            | Command                                        | Expected Result             |
-| ---------------- | ---------------------------------------------- | --------------------------- |
-| 🟢 Containers up | `docker ps`                                    | All services “Up”           |
-| 🟢 API           | `curl -X POST http://localhost/api/ticket/buy` | “Ticket purchased”          |
-| 🟢 Logs          | `docker logs payment-service`                  | “Payment confirmed”         |
-| 🟢 DB            | SQL query                                      | Ticket & Payment rows exist |
-| 🟢 RabbitMQ      | Dashboard                                      | Queue visible               |
-| 🟢 Grafana       | Dashboard                                      | Metrics appear              |
-| 🟢 Restart       | `docker compose up -d`                         | All auto-start cleanly      |
+| Check            | Command                                             | Expected Result                |
+| ---------------- | --------------------------------------------------- | ------------------------------ |
+| 🟢 Containers up | `docker ps`                                         | All “Up (healthy)”             |
+| 🟢 Ticket API    | `curl -X POST http://localhost:8080/api/ticket/buy` | “Ticket purchased”             |
+| 🟢 Gateway       | `curl -X POST http://localhost/api/ticket/buy`      | “Ticket purchased”             |
+| 🟢 Payment logs  | `docker logs payment-service`                       | “Payment confirmed”            |
+| 🟢 DB            | SQL query                                           | Ticket & Payment records exist |
+| 🟢 RabbitMQ      | Dashboard                                           | Queue visible                  |
+| 🟢 Grafana       | Dashboard                                           | Metrics shown                  |
+| 🟢 Restart       | `docker compose up -d`                              | All auto-start cleanly         |
 
 ---
 
-Once all of those pass, you can confidently say:
-✅ **Your Digital Lottery Platform MVP is fully operational and integration-tested locally.**
+✅ Once all tests pass, your **Digital Lottery Platform MVP** is officially:
+**Fully integrated, message-driven, observable, and production-grade for demo.**
 
-Would you like me to generate a short **Markdown “Sanity Test Checklist.md”** file you can drop into the repo for future use or demos?
+---
+
+Would you like me to generate this as a downloadable **`Sanity_Test_Checklist.md`** file you can drop directly into your `/docs` or root folder so you can commit it to Git and share with the team?
+
