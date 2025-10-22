@@ -200,6 +200,8 @@ RABBITMQ_PASS=guest
 * Expose RESTful payment API with status tracking.
 * Deploy on Kubernetes with Terraform modules.
 
+See the diagram - https://github.com/jparghi/digital-lottery-platform/blob/master/docs/RoadMap/digital_lottery_platform.png
+
 ---
 
 ✅ **Digital Lottery Platform MVP – MAP1 Complete**
