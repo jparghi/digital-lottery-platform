@@ -3,7 +3,13 @@
 **A microservice-based, message-driven MVP demonstrating an event-oriented lottery system.**
 
 **Stack:**
-React → Nginx (Gateway) → Spring Boot (Ticket Service) → RabbitMQ → Node.js (Payment Service) → PostgreSQL → Prometheus + Grafana
+- React (frontend)
+- Nginx (API gateway)
+- Spring Boot ticket service
+- RabbitMQ message broker
+- Node.js payment service
+- PostgreSQL database
+- Prometheus + Grafana monitoring
 
 ---
 
@@ -61,16 +67,16 @@ docker compose up -d --build
 
 ### Access Endpoints
 
-| Component       | URL                                                                                  | Notes                         |
-| --------------- | ------------------------------------------------------------------------------------ | ----------------------------- |
-| Frontend        | [http://localhost](http://localhost)                                                 | React UI                      |
-| Gateway         | [http://localhost/api/ticket/buy](http://localhost/api/ticket/buy)                   | Proxy endpoint                |
-| Ticket Service  | [http://localhost:8080/api/ticket/buy](http://localhost:8080/api/ticket/buy)         | Spring Boot API               |
-| Payment Service | [http://localhost:8081/api/payment/health](http://localhost:8081/api/payment/health) | Health check                  |
-| PostgreSQL      | localhost:5432                                                                       | lottery_db / lottery_user     |
-| RabbitMQ UI     | [http://localhost:15672](http://localhost:15672)                                     | guest / guest                 |
-| Prometheus      | [http://localhost:9090](http://localhost:9090)                                       | Metrics endpoint              |
-| Grafana         | [http://localhost:3000](http://localhost:3000)                                       | admin / admin (default login) |
+| Component | URL | Notes |
+| --- | --- | --- |
+| Frontend | [http://localhost](http://localhost) | React UI |
+| Gateway | [http://localhost/api/ticket/buy](http://localhost/api/ticket/buy) | Proxy endpoint |
+| Ticket Service | [http://localhost:8080/api/ticket/buy](http://localhost:8080/api/ticket/buy) | Spring Boot API |
+| Payment Service | [http://localhost:8081/api/payment/health](http://localhost:8081/api/payment/health) | Health check |
+| PostgreSQL | localhost:5432 | `lottery_db` / `lottery_user` |
+| RabbitMQ UI | [http://localhost:15672](http://localhost:15672) | `guest` / `guest` |
+| Prometheus | [http://localhost:9090](http://localhost:9090) | Metrics endpoint |
+| Grafana | [http://localhost:3000](http://localhost:3000) | admin / admin (default login) |
 
 ---
 
